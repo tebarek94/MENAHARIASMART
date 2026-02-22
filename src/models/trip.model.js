@@ -1,15 +1,32 @@
 import { pool } from "../config/db.js";
 
-// Get all trips
+const TRIP_DETAIL_QUERY = `
+  SELECT t.*, r.origin, r.destination,
+    CONCAT(COALESCE(r.origin, ''), ' to ', COALESCE(r.destination, '')) AS route_description,
+    v.plate_number AS vehicle_plate,
+    driver.full_name AS driver_name, driver.phone AS driver_phone
+  FROM trips t
+  LEFT JOIN routes r ON t.route_id = r.route_id
+  LEFT JOIN vehicles v ON t.vehicle_id = v.vehicle_id
+  LEFT JOIN users driver ON t.driver_id = driver.user_id
+`;
+
+// Get all trips (admin view with full context)
 export const getAllTrips = async () => {
-  const [rows] = await pool.query(
-    `SELECT t.*, r.origin, r.destination, v.plate_number, u.full_name AS driver_name
-     FROM trips t
-     LEFT JOIN routes r ON t.route_id = r.route_id
-     LEFT JOIN vehicles v ON t.vehicle_id = v.vehicle_id
-     LEFT JOIN users u ON t.driver_id = u.user_id`,
-  );
-  return rows;
+  try {
+    const [rows] = await pool.query(
+      `SELECT * FROM trip_detail_view ORDER BY departure_time DESC`,
+    );
+    return rows;
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE" || err.code === "ER_VIEW_DONOT_EXIST") {
+      const [rows] = await pool.query(
+        `${TRIP_DETAIL_QUERY} ORDER BY t.departure_time DESC`,
+      );
+      return rows;
+    }
+    throw err;
+  }
 };
 
 // Get trip by ID

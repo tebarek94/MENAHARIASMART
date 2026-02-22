@@ -9,6 +9,7 @@ import {
   updateUserRole,
   updateUserStatus,
   deleteUser,
+  getAllUsers,
 } from "../models/user.model.js";
 
 // ======================
@@ -75,6 +76,19 @@ export const register = async (req, res) => {
     );
 
     res.status(201).json({ message: "User registered successfully", user_id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ======================
+// GET ALL USERS (Admin)
+// ======================
+export const listAllUsers = async (req, res) => {
+  try {
+    const users = await getAllUsers();
+    res.json({ users });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

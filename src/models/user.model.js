@@ -68,3 +68,21 @@ export const updateUserProfile = async (id, full_name, email) => {
 export const deleteUser = async (id) => {
   await pool.query("DELETE FROM users WHERE user_id = ?", [id]);
 };
+
+// Get all users (admin view)
+export const getAllUsers = async () => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT * FROM user_admin_view ORDER BY created_at DESC`,
+    );
+    return rows;
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE" || err.code === "ER_VIEW_DONOT_EXIST") {
+      const [rows] = await pool.query(
+        `SELECT user_id, full_name, phone, email, role_id, status, created_at FROM users ORDER BY created_at DESC`,
+      );
+      return rows;
+    }
+    throw err;
+  }
+};

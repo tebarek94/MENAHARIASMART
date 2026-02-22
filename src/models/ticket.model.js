@@ -1,14 +1,35 @@
 import { pool } from "../config/db.js";
 
-// Get all tickets
+const TICKET_DETAIL_QUERY = `
+  SELECT ti.*, u.full_name AS passenger_name, u.phone AS passenger_phone, u.email AS passenger_email,
+    t.departure_time, t.arrival_time, t.price AS trip_price, t.status AS trip_status,
+    r.origin, r.destination,
+    CONCAT(COALESCE(r.origin, ''), ' to ', COALESCE(r.destination, '')) AS route_description,
+    v.plate_number AS vehicle_plate, driver.full_name AS driver_name
+  FROM tickets ti
+  LEFT JOIN users u ON ti.passenger_id = u.user_id
+  LEFT JOIN trips t ON ti.trip_id = t.trip_id
+  LEFT JOIN routes r ON t.route_id = r.route_id
+  LEFT JOIN vehicles v ON t.vehicle_id = v.vehicle_id
+  LEFT JOIN users driver ON t.driver_id = driver.user_id
+`;
+
+// Get all tickets (admin view with full context)
 export const getAllTickets = async () => {
-  const [rows] = await pool.query(
-    `SELECT ti.*, u.full_name AS passenger_name, tr.departure_time, tr.arrival_time, tr.price
-     FROM tickets ti
-     LEFT JOIN users u ON ti.passenger_id = u.user_id
-     LEFT JOIN trips tr ON ti.trip_id = tr.trip_id`,
-  );
-  return rows;
+  try {
+    const [rows] = await pool.query(
+      `SELECT * FROM ticket_detail_view ORDER BY issued_at DESC`,
+    );
+    return rows;
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE" || err.code === "ER_VIEW_DONOT_EXIST") {
+      const [rows] = await pool.query(
+        `${TICKET_DETAIL_QUERY} ORDER BY ti.issued_at DESC`,
+      );
+      return rows;
+    }
+    throw err;
+  }
 };
 
 // Get ticket by ID

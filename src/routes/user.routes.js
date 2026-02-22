@@ -2,6 +2,7 @@ import express from "express";
 import {
   login,
   register,
+  listAllUsers,
   getUserById,
   updateProfile,
   updatePassword,
@@ -18,7 +19,8 @@ const router = express.Router();
 router.post("/login", login);
 router.post("/register", register);
 
-// Authenticated user routes
+// Authenticated user routes (GET / must be before GET /:id)
+router.get("/", authenticate, authorizeRoles(1), listAllUsers);
 router.get("/:id", authenticate, getUserById);
 router.put("/profile/:id", authenticate, updateProfile);
 router.put("/password/:id", authenticate, updatePassword);

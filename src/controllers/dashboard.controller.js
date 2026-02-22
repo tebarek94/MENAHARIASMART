@@ -4,6 +4,7 @@ import {
   getSeatOccupancyPerTrip,
   getTopRevenueRoute,
   getDailyRevenueReport,
+  getRevenueSummaryByRoute,
 } from "../models/dashboard.model.js";
 
 // ==================
@@ -92,6 +93,19 @@ export const getDailyRevenueController = async (req, res) => {
     const reportDate = date || new Date().toISOString().split("T")[0]; // Default to today (YYYY-MM-DD)
     const result = await getDailyRevenueReport(reportDate);
     res.json({ report: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ==================
+// Get revenue summary by route (admin analytics)
+// ==================
+export const getRevenueSummaryController = async (req, res) => {
+  try {
+    const result = await getRevenueSummaryByRoute();
+    res.json({ revenue_by_route: result });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
