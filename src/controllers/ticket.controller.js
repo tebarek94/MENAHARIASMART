@@ -28,10 +28,13 @@ export const getAllTickets = async (req, res) => {
 export const getTicketById = async (req, res) => {
   try {
     const { id } = req.params;
-    const ticket = await getTicketByIdModel(id);
-    if (ticket.length === 0)
+    const ticketsWithDetails = await getTicketByIdWithDetailsModel(id);
+    if (ticketsWithDetails.length === 0)
       return res.status(404).json({ message: "Ticket not found" });
-    res.json({ ticket: ticket[0] });
+
+    // Return rich ticket details (passenger, driver, vehicle, payment, seat)
+    const ticket = ticketsWithDetails[0];
+    res.json({ ticket });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

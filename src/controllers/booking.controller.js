@@ -1,4 +1,10 @@
 import { fullBookingTransaction } from "../models/booking.model.js";
+import {
+  hasActiveTicketForTrip,
+  getTicketsByPassenger,
+} from "../models/ticket.model.js";
+import { getTripById } from "../models/trip.model.js";
+import { getSeatByTripAndNumber } from "../models/seat.model.js";
 
 // ==================
 // Full booking transaction
@@ -12,6 +18,30 @@ export const createBooking = async (req, res) => {
       return res.status(400).json({
         message:
           "trip_id, passenger_id, seat_number, and payment_method are required",
+      });
+    }
+
+    // Ensure trip exists
+    const trips = await getTripById(trip_id);
+    if (trips.length === 0) {
+      return res.status(400).json({
+        message: "Invalid trip_id: trip does not exist",
+      });
+    }
+
+    // Ensure seat exists for that trip
+    const seatRows = await getSeatByTripAndNumber(trip_id, seat_number);
+    if (seatRows.length === 0) {
+      return res.status(400).json({
+        message: "Invalid seat_number for this trip",
+      });
+    }
+
+    // Ensure one user can only book one seat per trip
+    const alreadyHasTicket = await hasActiveTicketForTrip(trip_id, passenger_id);
+    if (alreadyHasTicket) {
+      return res.status(409).json({
+        message: "Passenger already has a booking for this trip",
       });
     }
 
@@ -49,6 +79,24 @@ export const createBooking = async (req, res) => {
         message: "Seat is not available",
       });
     }
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ==================
+// Get booking status for current user
+// ==================
+export const getMyBookings = async (req, res) => {
+  try {
+    const passenger_id = req.user?.user_id;
+    if (!passenger_id) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const tickets = await getTicketsByPassenger(passenger_id);
+    res.json({ tickets });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };

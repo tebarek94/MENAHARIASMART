@@ -1,5 +1,5 @@
 import express from "express";
-import { createBooking } from "../controllers/booking.controller.js";
+import { createBooking, getMyBookings } from "../controllers/booking.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -9,5 +9,8 @@ router.use(authenticate);
 
 // Create booking (full transaction)
 router.post("/", createBooking);
+
+// Get booking status for current user
+router.get("/me", getMyBookings);
 
 export default router;

@@ -43,7 +43,7 @@ export const getReport = async (req, res) => {
 // ==================
 export const generateReport = async (req, res) => {
   try {
-    const { report_type, date_from, date_to } = req.body;
+    const { report_type, date_from, date_to } = req.body || {};
     if (!report_type) {
       return res.status(400).json({
         message: "report_type is required",
@@ -77,7 +77,7 @@ export const generateReport = async (req, res) => {
 // ==================
 export const createNewReport = async (req, res) => {
   try {
-    const { report_type, date_from, date_to } = req.body;
+    const { report_type, date_from, date_to } = req.body || {};
     const generated_by = req.user?.user_id ?? req.user?.id;
     if (!generated_by) {
       return res.status(401).json({ message: "User not found" });

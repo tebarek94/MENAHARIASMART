@@ -15,6 +15,24 @@ export const lockSeat = async (trip_id, seat_number) => {
 };
 
 /**
+ * Create a seat row for a trip (admin)
+ * @param {string} trip_id
+ * @param {number} seat_number
+ * @param {string} status
+ */
+export const createSeat = async (
+  trip_id,
+  seat_number,
+  status = "AVAILABLE",
+) => {
+  const [result] = await pool.query(
+    "INSERT INTO seats (trip_id, seat_number, status) VALUES (?, ?, ?)",
+    [trip_id, seat_number, status],
+  );
+  return result.insertId;
+};
+
+/**
  * Get all seats for a trip
  * @param {string} trip_id - Trip UUID
  * @returns {Promise<Array>}
@@ -66,4 +84,33 @@ export const updateSeatStatus = async (trip_id, seat_number, status) => {
     "UPDATE seats SET status = ?, locked_at = NULL WHERE trip_id = ? AND seat_number = ?",
     [status, trip_id, seat_number],
   );
+};
+
+/**
+ * Admin view: seat + (optional) booking info per trip
+ */
+export const getSeatBookingDetailsForTrip = async (trip_id) => {
+  const [rows] = await pool.query(
+    `SELECT 
+       s.trip_id,
+       s.seat_number,
+       s.status AS seat_status,
+       s.locked_at,
+       tk.ticket_id,
+       tk.ticket_status,
+       tk.payment_status,
+       u.user_id AS passenger_id,
+       u.full_name AS passenger_name,
+       u.phone AS passenger_phone
+     FROM seats s
+     LEFT JOIN tickets tk
+       ON s.trip_id = tk.trip_id
+      AND s.seat_number = tk.seat_number
+      AND tk.ticket_status <> 'CANCELLED'
+     LEFT JOIN users u ON tk.passenger_id = u.user_id
+     WHERE s.trip_id = ?
+     ORDER BY s.seat_number`,
+    [trip_id],
+  );
+  return rows;
 };

@@ -1,10 +1,12 @@
 import express from "express";
 import {
   lockSeatController,
+  createSeatController,
   getSeatsByTripController,
   getAvailableSeatsController,
   getSeatController,
   updateSeatStatusController,
+  getSeatAdminViewController,
 } from "../controllers/seat.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/role.middleware.js";
@@ -16,6 +18,20 @@ router.use(authenticate);
 
 // Lock seat (passenger or admin)
 router.post("/lock", lockSeatController);
+
+// Admin: create a seat for a trip
+router.post(
+  "/trip/:trip_id/seat",
+  authorizeRoles(1),
+  createSeatController,
+);
+
+// Admin: detailed seat + booking view for a trip
+router.get(
+  "/admin/trip/:trip_id/seats",
+  authorizeRoles(1),
+  getSeatAdminViewController,
+);
 
 // Get seats by trip
 router.get("/trip/:trip_id", getSeatsByTripController);

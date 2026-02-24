@@ -31,13 +31,21 @@ export const getRoute = async (req, res) => {
 
 export const createNewRoute = async (req, res) => {
   try {
-    const { origin, destination } = req.body;
-    if (!origin || !destination) {
+    const { origin, destination, distance_km } = req.body;
+    if (!origin || !destination || distance_km === undefined) {
       return res.status(400).json({
-        message: "origin and destination are required",
+        message: "origin, destination and distance_km are required",
       });
     }
-    const route_id = await createRoute(origin, destination);
+
+    const parsedDistance = Number(distance_km);
+    if (Number.isNaN(parsedDistance) || parsedDistance <= 0) {
+      return res.status(400).json({
+        message: "distance_km must be a positive number",
+      });
+    }
+
+    const route_id = await createRoute(origin, destination, parsedDistance);
     res.status(201).json({ message: "Route created", route_id });
   } catch (err) {
     console.error(err);
@@ -48,8 +56,22 @@ export const createNewRoute = async (req, res) => {
 export const updateExistingRoute = async (req, res) => {
   try {
     const { id } = req.params;
-    const { origin, destination } = req.body;
-    await updateRoute(id, origin, destination);
+    const { origin, destination, distance_km } = req.body;
+
+    if (!origin || !destination || distance_km === undefined) {
+      return res.status(400).json({
+        message: "origin, destination and distance_km are required",
+      });
+    }
+
+    const parsedDistance = Number(distance_km);
+    if (Number.isNaN(parsedDistance) || parsedDistance <= 0) {
+      return res.status(400).json({
+        message: "distance_km must be a positive number",
+      });
+    }
+
+    await updateRoute(id, origin, destination, parsedDistance);
     res.json({ message: "Route updated successfully" });
   } catch (err) {
     console.error(err);

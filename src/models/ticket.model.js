@@ -32,6 +32,19 @@ export const getAllTickets = async () => {
   }
 };
 
+// Get tickets for a specific passenger (booking status view)
+export const getTicketsByPassenger = async (passenger_id) => {
+  try {
+    const [rows] = await pool.query(
+      `${TICKET_DETAIL_QUERY} WHERE ti.passenger_id = ? ORDER BY ti.issued_at DESC`,
+      [passenger_id],
+    );
+    return rows;
+  } catch (err) {
+    throw err;
+  }
+};
+
 // Get ticket by ID
 export const getTicketById = async (id) => {
   const [rows] = await pool.query("SELECT * FROM tickets WHERE ticket_id = ?", [
@@ -40,18 +53,34 @@ export const getTicketById = async (id) => {
   return rows;
 };
 
-// Get ticket by ID with passenger name and trip details (for QR code)
+// Get ticket by ID with passenger, trip, driver, vehicle and payment details
 export const getTicketByIdWithDetails = async (id) => {
   const [rows] = await pool.query(
-    `SELECT ti.*, 
-      u.full_name AS passenger_name,
-      tr.departure_time, tr.arrival_time, tr.price AS trip_price,
-      r.origin, r.destination,
-      CONCAT(COALESCE(r.origin, ''), ' to ', COALESCE(r.destination, '')) AS trip_description
+    `SELECT 
+       ti.*,
+       u.full_name AS passenger_name,
+       u.phone AS passenger_phone,
+       u.email AS passenger_email,
+       tr.departure_time,
+       tr.arrival_time,
+       tr.price AS trip_price,
+       tr.status AS trip_status,
+       r.origin,
+       r.destination,
+       CONCAT(COALESCE(r.origin, ''), ' to ', COALESCE(r.destination, '')) AS trip_description,
+       v.plate_number AS vehicle_plate,
+       driver.full_name AS driver_name,
+       p.payment_method,
+       p.amount AS payment_amount
      FROM tickets ti
      LEFT JOIN users u ON ti.passenger_id = u.user_id
      LEFT JOIN trips tr ON ti.trip_id = tr.trip_id
      LEFT JOIN routes r ON tr.route_id = r.route_id
+     LEFT JOIN vehicles v ON tr.vehicle_id = v.vehicle_id
+     LEFT JOIN users driver ON tr.driver_id = driver.user_id
+     LEFT JOIN payments p 
+       ON p.ticket_id = ti.ticket_id
+      AND p.payment_status = 'SUCCESS'
      WHERE ti.ticket_id = ?`,
     [id],
   );
@@ -113,4 +142,18 @@ export const updateTicketQRCode = async (id, qr_code) => {
 // Delete ticket
 export const deleteTicket = async (id) => {
   await pool.query("DELETE FROM tickets WHERE ticket_id = ?", [id]);
+};
+
+// Check if passenger already has an active (paid) ticket for a trip
+export const hasActiveTicketForTrip = async (trip_id, passenger_id) => {
+  const [rows] = await pool.query(
+    `SELECT COUNT(*) AS count
+     FROM tickets
+     WHERE trip_id = ? 
+       AND passenger_id = ?
+       AND ticket_status <> 'CANCELLED'
+       AND payment_status = 'SUCCESS'`,
+    [trip_id, passenger_id],
+  );
+  return rows[0]?.count > 0;
 };
